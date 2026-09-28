@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Chat</title>
+<title>DirectLine</title>
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
@@ -18,7 +18,7 @@
 
     <div class="sidebar">
 
-        <h2>Telegram Clone</h2>
+        <h2>DirectLine</h2>
 
         <h3>{{ me }}</h3>
 
@@ -135,7 +135,7 @@ function renderUsers(users){
 }
 
 // ---------- Fetch latest user list from server (so a newly signed up ---------- //
-// ---------- user like "suman" shows up for "sahil" without reload)   ---------- //
+// ---------- user shows up for everyone else without a page reload)   ---------- //
 
 function refreshUsers(){
 
@@ -249,7 +249,7 @@ function sendMessage(event){
 
     if(currentUser === ""){
 
-        alert("Pehle ek user select karo chat karne ke liye");
+        alert("Please select a user to chat with first");
 
         return false;
 
@@ -293,7 +293,7 @@ function sendMessage(event){
 
         else{
 
-            alert(data.message || "Message send nahi hui");
+            alert(data.message || "Message could not be sent");
 
         }
 

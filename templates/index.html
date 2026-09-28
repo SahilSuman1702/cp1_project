@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Telegram Clone</title>
+<title>DirectLine</title>
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
@@ -15,9 +16,13 @@
 
 <div class="login-box">
 
-    <h1>Telegram Clone</h1>
+    <h1>DirectLine</h1>
 
     <p>Enter your unique User ID</p>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
 
     <form action="/login" method="POST">
 
@@ -49,7 +54,7 @@
 
         <button type="submit">
 
-            Login
+            Continue
 
         </button>
 

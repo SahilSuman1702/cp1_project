@@ -68,6 +68,24 @@ body{
 
 }
 
+.error{
+
+    background:#4a1f1f;
+
+    color:#ff8a8a;
+
+    padding:10px;
+
+    border-radius:6px;
+
+    margin-bottom:15px;
+
+    text-align:left;
+
+    font-size:14px;
+
+}
+
 button{
 
     width:100%;
