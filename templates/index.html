@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Telegram Clone</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="login-box">
+
+    <h1>Telegram Clone</h1>
+
+    <p>Enter your unique User ID</p>
+
+    <form action="/login" method="POST">
+
+        <input
+            type="text"
+            name="userid"
+            placeholder="User ID"
+            required
+        >
+
+        <div class="captcha">
+
+            <label>
+
+                Solve :
+
+                <strong>{{a}} + {{b}}</strong>
+
+            </label>
+
+            <input
+                type="number"
+                name="captcha"
+                placeholder="Answer"
+                required
+            >
+
+        </div>
+
+        <button type="submit">
+
+            Login
+
+        </button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

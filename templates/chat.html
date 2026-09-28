@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Chat</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="sidebar">
+
+        <h2>Telegram Clone</h2>
+
+        <h3>{{ me }}</h3>
+
+        <a href="/logout">
+            Logout
+        </a>
+
+        <hr>
+
+        <input
+            type="text"
+            id="search"
+            placeholder="Search User..."
+            onkeyup="searchUser()"
+        >
+
+        <div id="users">
+
+            {% for user in users %}
+
+            <div class="user" onclick="openChat('{{ user }}')">
+
+                {{ user }}
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    <div class="chat">
+
+        <h2 id="chatUser">
+
+            Select User
+
+        </h2>
+
+        <div
+            id="messages"
+            class="messages"
+        >
+
+        </div>
+
+        <form
+            id="sendForm"
+            onsubmit="return sendMessage(event)"
+        >
+
+            <input
+                type="hidden"
+                id="receiver"
+                name="receiver"
+            >
+
+            <input
+                type="text"
+                id="messageInput"
+                name="message"
+                placeholder="Type message..."
+                required
+            >
+
+            <button>
+
+                Send
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+
+let currentUser = "";
+
+// ---------- Render user list (used for both initial load and live refresh) ---------- //
+
+function renderUsers(users){
+
+    let container = document.getElementById("users");
+
+    let searchVal =
+        document
+        .getElementById("search")
+        .value
+        .toLowerCase();
+
+    let html = "";
+
+    users.forEach(function(user){
+
+        html += `
+        <div class="user" onclick="openChat('${user}')">
+
+            ${user}
+
+        </div>
+        `;
+
+    });
+
+    container.innerHTML = html;
+
+    // re-apply current search filter after refresh
+    searchUser(searchVal);
+
+}
+
+// ---------- Fetch latest user list from server (so a newly signed up ---------- //
+// ---------- user like "suman" shows up for "sahil" without reload)   ---------- //
+
+function refreshUsers(){
+
+    fetch("/api/users")
+
+    .then(r => r.json())
+
+    .then(data => {
+
+        renderUsers(data);
+
+    });
+
+}
+
+function searchUser(forcedValue){
+
+    let input =
+        forcedValue !== undefined
+        ? forcedValue
+        : document
+            .getElementById("search")
+            .value
+            .toLowerCase();
+
+    let users =
+        document
+        .getElementsByClassName("user");
+
+    for(let i=0;i<users.length;i++){
+
+        let txt =
+            users[i]
+            .innerText
+            .toLowerCase()
+            .trim();
+
+        if(txt.indexOf(input)>-1){
+
+            users[i].style.display="block";
+
+        }
+
+        else{
+
+            users[i].style.display="none";
+
+        }
+
+    }
+
+}
+
+function openChat(user){
+
+    currentUser=user;
+
+    document
+    .getElementById("receiver")
+    .value=user;
+
+    document
+    .getElementById("chatUser")
+    .innerHTML=user;
+
+    loadMessages();
+
+}
+
+function loadMessages(){
+
+    fetch("/messages/"+currentUser)
+
+    .then(r=>r.json())
+
+    .then(data=>{
+
+        let html="";
+
+        data.forEach(function(msg){
+
+            html+=`
+            <p>
+
+            <b>${msg.from}</b>
+
+            : ${msg.message}
+
+            </p>
+            `;
+
+        });
+
+        document
+        .getElementById("messages")
+        .innerHTML=html;
+
+        // auto scroll to latest message
+        let box = document.getElementById("messages");
+        box.scrollTop = box.scrollHeight;
+
+    });
+
+}
+
+// ---------- Send message via fetch (no page reload) ---------- //
+
+function sendMessage(event){
+
+    event.preventDefault();
+
+    if(currentUser === ""){
+
+        alert("Pehle ek user select karo chat karne ke liye");
+
+        return false;
+
+    }
+
+    let messageInput = document.getElementById("messageInput");
+
+    let message = messageInput.value.trim();
+
+    if(message === ""){
+
+        return false;
+
+    }
+
+    let formData = new FormData();
+
+    formData.append("receiver", currentUser);
+
+    formData.append("message", message);
+
+    fetch("/send", {
+
+        method: "POST",
+
+        body: formData
+
+    })
+
+    .then(r => r.json())
+
+    .then(data => {
+
+        if(data.status === "ok"){
+
+            messageInput.value = "";
+
+            loadMessages();
+
+        }
+
+        else{
+
+            alert(data.message || "Message send nahi hui");
+
+        }
+
+    });
+
+    return false;
+
+}
+
+// poll messages of the open chat
+setInterval(function(){
+
+    if(currentUser!=""){
+
+        loadMessages();
+
+    }
+
+},2000);
+
+// poll user list so new signups appear live
+setInterval(refreshUsers, 3000);
+
+</script>
+
+</body>
+
+</html>
