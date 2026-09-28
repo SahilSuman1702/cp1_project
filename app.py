@@ -13,6 +13,7 @@ import secrets
 import smtplib
 import threading
 import time
+import urllib.error
 import urllib.request
 
 app = Flask(__name__)
@@ -285,6 +286,14 @@ def send_email(to_email, subject, text_body, html_body):
         try:
             with urllib.request.urlopen(req, timeout=15) as r:
                 return 200 <= r.status < 300
+        except urllib.error.HTTPError as e:
+            # Brevo tells us exactly what is wrong in the body - it shows in Render Logs
+            try:
+                body = e.read().decode("utf-8", "replace")
+            except Exception:
+                body = ""
+            print(f"Brevo email error: HTTP {e.code} -> {body}")
+            return False
         except Exception as e:
             print("Brevo email error:", repr(e))
             return False
