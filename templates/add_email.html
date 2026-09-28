@@ -6,7 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>DirectLine - Create Account</title>
+<title>DirectLine - Email</title>
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
@@ -18,13 +18,13 @@
 
     <h1>DirectLine</h1>
 
-    <p>Create your account for <strong>{{ userid }}</strong></p>
+    <p>Enter the email for <strong>{{ userid }}</strong></p>
 
     {% if error %}
     <p class="error">{{ error }}</p>
     {% endif %}
 
-    <form action="/set-password" method="POST">
+    <form action="/add-email" method="POST">
 
         <input
             type="email"
@@ -35,29 +35,17 @@
             required
         >
 
-        <p class="hint">We'll send a 6-digit code to verify this email.</p>
-
-        <input
-            type="password"
-            name="password"
-            placeholder="New Password"
-            required
-        >
-
-        <input
-            type="password"
-            name="confirm"
-            placeholder="Confirm Password"
-            required
-        >
+        <p class="hint">We'll send a 6-digit code to verify it.</p>
 
         <button type="submit">
 
-            Create Account &amp; Send Code
+            Send Code
 
         </button>
 
     </form>
+
+    <p class="hint"><a href="/logout">Start over</a></p>
 
 </div>
 

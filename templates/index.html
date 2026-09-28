@@ -35,18 +35,35 @@
 
         <div class="captcha">
 
-            <label>
+            <div class="captcha-row">
 
-                Solve :
+                <img
+                    id="captchaImg"
+                    class="captcha-img"
+                    src="/captcha.png"
+                    alt="Captcha"
+                >
 
-                <strong>{{a}} + {{b}}</strong>
+                <button
+                    type="button"
+                    class="captcha-refresh"
+                    onclick="refreshCaptcha()"
+                    title="Get a new captcha"
+                    aria-label="Get a new captcha"
+                >
+                    &#8635;
+                </button>
 
-            </label>
+            </div>
 
             <input
-                type="number"
+                type="text"
                 name="captcha"
-                placeholder="Answer"
+                placeholder="Enter the text from image"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                maxlength="10"
                 required
             >
 
@@ -61,6 +78,31 @@
     </form>
 
 </div>
+
+<script>
+
+function refreshCaptcha(){
+
+    document
+    .getElementById("captchaImg")
+    .src = "/captcha.png?t=" + Date.now();
+
+    let box = document.querySelector("input[name=captcha]");
+    box.value = "";
+    box.focus();
+
+}
+
+// Back button / restored page: the old captcha is already used up, load a new one
+window.addEventListener("pageshow", function(e){
+
+    if(e.persisted){
+        refreshCaptcha();
+    }
+
+});
+
+</script>
 
 </body>
 </html>

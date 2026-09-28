@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DirectLine - Verify Email</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="login-box">
+
+    <h1>DirectLine</h1>
+
+    <p>Enter the 6-digit code sent to <strong>{{ email }}</strong></p>
+
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if info %}
+    <p class="info">{{ info }}</p>
+    {% endif %}
+
+    <form action="/verify-email" method="POST">
+
+        <input
+            class="code-input"
+            type="text"
+            name="code"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="6"
+            autocomplete="one-time-code"
+            placeholder="000000"
+            required
+            autofocus
+        >
+
+        <button type="submit">
+
+            Verify &amp; Continue
+
+        </button>
+
+    </form>
+
+    <form action="/resend-code" method="POST">
+
+        <button type="submit" class="secondary">
+
+            Resend code
+
+        </button>
+
+    </form>
+
+    <p class="hint">
+
+        <a href="/add-email">Wrong email?</a>
+        &nbsp;&middot;&nbsp;
+        <a href="/logout">Start over</a>
+
+    </p>
+
+</div>
+
+</body>
+</html>

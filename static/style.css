@@ -261,3 +261,125 @@ button:hover{
     margin-left:10px;
 
 }
+
+/* ---------- Image captcha ---------- */
+
+.captcha-row{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.captcha-img{
+
+    height:70px;
+
+    width:auto;
+
+    max-width:calc(100% - 54px);
+
+    border-radius:8px;
+
+    background:#eef1fa;
+
+    display:block;
+
+}
+
+.login-box .captcha-refresh{
+
+    width:44px;
+
+    height:44px;
+
+    flex-shrink:0;
+
+    margin-top:0;
+
+    padding:0;
+
+    border-radius:50%;
+
+    font-size:22px;
+
+    line-height:1;
+
+}
+
+/* ---------- Email verification ---------- */
+
+.info{
+
+    background:#1b3a2b;
+
+    color:#8fe0b0;
+
+    padding:10px;
+
+    border-radius:6px;
+
+    margin-bottom:15px;
+
+    text-align:left;
+
+    font-size:14px;
+
+}
+
+.login-box .hint{
+
+    margin:12px 0 0;
+
+    font-size:13px;
+
+    color:#90a4ae;
+
+    text-align:left;
+
+}
+
+.login-box p.hint:last-child{
+
+    text-align:center;
+
+}
+
+.login-box a{
+
+    color:#2AABEE;
+
+}
+
+.login-box .code-input{
+
+    text-align:center;
+
+    letter-spacing:10px;
+
+    font-size:24px;
+
+}
+
+button.secondary{
+
+    background:transparent;
+
+    border:1px solid #3b4b5c;
+
+    color:#cfd8dc;
+
+    font-size:14px;
+
+    margin-top:12px;
+
+}
+
+button.secondary:hover{
+
+    background:#2b3948;
+
+}
