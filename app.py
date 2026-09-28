@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, session, jsonify, Response
+from flask import Flask, render_template, request, redirect, session, jsonify, Response, abort, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from email.message import EmailMessage
+from functools import wraps
 import hashlib
 import hmac
 import io
@@ -32,6 +33,29 @@ app.config["SESSION_COOKIE_SECURE"] = os.environ.get("RENDER") is not None
 
 USERS_FILE = "users.json"
 MESSAGES_FILE = "messages.json"
+GROUPS_FILE = "groups.json"
+
+# uploads (profile photos, chat photos, voice messages)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+for _sub in ("avatars", "covers", "files"):
+    os.makedirs(os.path.join(UPLOAD_DIR, _sub), exist_ok=True)
+
+app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024   # 8 MB per request
+
+DEFAULT_STATUS = "Hey there! I am using DirectLine."
+ONLINE_WINDOW = 25            # seconds since last request -> shown as "Online"
+USERID_RE = re.compile(r"^[a-z0-9_]{3,20}$")
+
+MEDIA_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{10,60}\.(jpg|webm|ogg|m4a|mp3|wav|aac)$")
+AUDIO_TYPES = {
+    "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/x-m4a": "m4a",
+    "audio/mpeg": "mp3", "audio/wav": "wav", "audio/x-wav": "wav", "audio/aac": "aac",
+}
+MEDIA_MIME = {
+    "jpg": "image/jpeg", "webm": "audio/webm", "ogg": "audio/ogg", "m4a": "audio/mp4",
+    "mp3": "audio/mpeg", "wav": "audio/wav", "aac": "audio/aac",
+}
 
 # captcha
 CAPTCHA_TTL = 300            # seconds a captcha stays valid
@@ -106,20 +130,66 @@ def mask_email(email):
     return masked + "@" + domain
 
 
-# ---------------- MESSAGES ---------------- #
+# ---------------- MESSAGES + GROUPS ---------------- #
 
-def load_messages():
-    if not os.path.exists(MESSAGES_FILE):
-        with open(MESSAGES_FILE, "w") as f:
-            json.dump([], f)
+messages_lock = threading.RLock()
+groups_lock = threading.RLock()
 
-    with open(MESSAGES_FILE, "r") as f:
+
+def _read_json(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, "r") as f:
         return json.load(f)
 
 
+def _write_json(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=4)
+    os.replace(tmp, path)  # atomic, no half-written file
+
+
+def load_messages():
+    with messages_lock:
+        messages = _read_json(MESSAGES_FILE)
+
+        # messages saved by the old version had no id / time / type: add them once
+        next_id = max([m.get("id", 0) for m in messages] or [0]) + 1
+        changed = False
+        for m in messages:
+            if "id" not in m:
+                m["id"] = next_id
+                next_id += 1
+                m.setdefault("ts", 0)
+                m.setdefault("type", "text")
+                m["read"] = True
+                changed = True
+        if changed:
+            _write_json(MESSAGES_FILE, messages)
+        return messages
+
+
 def save_messages(messages):
-    with open(MESSAGES_FILE, "w") as f:
-        json.dump(messages, f, indent=4)
+    with messages_lock:
+        _write_json(MESSAGES_FILE, messages)
+
+
+def load_groups():
+    with groups_lock:
+        return _read_json(GROUPS_FILE)
+
+
+def save_groups(groups):
+    with groups_lock:
+        _write_json(GROUPS_FILE, groups)
+
+
+def find_group(groups, gid):
+    for g in groups:
+        if g.get("id") == gid:
+            return g
+    return None
 
 
 # ---------------- IMAGE CAPTCHA ---------------- #
@@ -448,7 +518,10 @@ def login():
     session["pending_user"] = userid
 
     if existing is None:
-        # brand new user id -> must create a password first
+        # brand new user id -> check the format, then create a password
+        if not USERID_RE.match(userid):
+            session.pop("pending_user", None)
+            return render_home_error("User ID must be 3-20 characters: small letters, numbers or _")
         return redirect("/set-password")
     else:
         # known user id -> must enter their existing password
@@ -505,6 +578,9 @@ def set_password():
                 "email": email,
                 "email_verified": False,
                 "created_at": time.time(),
+                "name": userid,
+                "status": DEFAULT_STATUS,
+                "about": "",
             })
             save_users(users)
 
@@ -691,97 +767,512 @@ def resend_code():
     return redirect("/verify-email")
 
 
+# ---------------- PROFILE HELPERS ---------------- #
+
+_last_seen = {}   # userid -> last time the browser talked to the server (for "Online")
+
+
+def is_online(userid):
+    return time.time() - _last_seen.get(userid, 0) < ONLINE_WINDOW
+
+
+def public_user(u):
+    """What other people are allowed to see about a user (no email)."""
+    uid = u["userid"]
+    return {
+        "userid": uid,
+        "name": u.get("name") or uid,
+        "status": u.get("status", DEFAULT_STATUS),
+        "about": u.get("about", ""),
+        "avatar": u.get("avatar_v", 0),
+        "cover": u.get("cover_v", 0),
+        "online": is_online(uid),
+    }
+
+
+def me_payload(u):
+    d = public_user(u)
+    d["email"] = u.get("email", "")
+    return d
+
+
+def verified_map(users):
+    return {u["userid"]: u for u in users if u.get("email_verified")}
+
+
+def api_login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        me = session.get("user")
+        if not me or not find_user(load_users(), me):
+            return jsonify({"status": "error", "message": "Please log in again"}), 401
+        _last_seen[me] = time.time()
+        return fn(me, *args, **kwargs)
+    return wrapper
+
+
+def err(message, code=400):
+    return jsonify({"status": "error", "message": message}), code
+
+
+@app.errorhandler(413)
+def too_large(_e):
+    return err("That file is too large (max 8 MB)", 413)
+
+
 # ---------------- CHAT PAGE ---------------- #
-
-def chat_usernames(me):
-    # only people with a verified email show up in the chat list
-    users = load_users()
-    return [u["userid"] for u in users if u.get("email_verified") and u["userid"] != me]
-
 
 @app.route("/chat")
 def chat():
 
-    if "user" not in session:
+    me = session.get("user")
+
+    if not me:
         return redirect("/")
 
-    me = session["user"]
+    user = find_user(load_users(), me)
 
-    return render_template(
-        "chat.html",
-        users=chat_usernames(me),
-        me=me
-    )
+    if not user:                      # account no longer exists
+        session.clear()
+        return redirect("/")
 
+    _last_seen[me] = time.time()
 
-# ---------------- LIVE USER LIST ---------------- #
-# Sidebar polls this every few seconds so newly registered
-# users show up for others without a page refresh.
-
-@app.route("/api/users")
-def api_users():
-
-    if "user" not in session:
-        return jsonify([])
-
-    return jsonify(chat_usernames(session["user"]))
+    return render_template("chat.html", profile=me_payload(user))
 
 
-# ---------------- SEND MESSAGE ---------------- #
+# ---------------- CHAT LIST (people + groups, last message, unread) ---------------- #
+# The page polls this every few seconds: it drives the chat list, unread
+# badges, online status and the "new chat" user picker.
 
-@app.route("/send", methods=["POST"])
-def send():
+def _preview(m, me, names, in_group):
+    kind = m.get("type", "text")
+    if kind == "image":
+        text = "\U0001F4F7 " + (m.get("message") or "Photo")
+    elif kind == "audio":
+        text = "\U0001F3A4 Voice message"
+    else:
+        text = m.get("message", "")
 
-    if "user" not in session:
-        return jsonify({"status": "error", "message": "Not logged in"}), 401
+    if m["from"] == me:
+        who = "You"
+    elif in_group:
+        who = names.get(m["from"], m["from"])
+    else:
+        who = ""
+    return {"text": text[:80], "who": who}
 
-    sender = session["user"]
 
-    receiver = request.form.get("receiver", "").strip().lower()
+@app.route("/api/chats")
+@api_login_required
+def api_chats(me):
 
-    message = request.form.get("message", "").strip()
-
-    if not receiver or not message:
-        return jsonify({"status": "error", "message": "Receiver and message required"}), 400
-
+    users = load_users()
+    names = {u["userid"]: u.get("name") or u["userid"] for u in users}
+    verified = verified_map(users)
     messages = load_messages()
+    groups = [g for g in load_groups() if me in g["members"]]
 
-    messages.append({
-        "from": sender,
-        "to": receiver,
-        "message": message
+    dm = {}
+    group_msgs = {}
+
+    for m in messages:
+        gid = m.get("group")
+        if gid:
+            group_msgs.setdefault(gid, []).append(m)
+            continue
+
+        if m["from"] == me:
+            other = m["to"]
+        elif m["to"] == me:
+            other = m["from"]
+        else:
+            continue
+
+        entry = dm.setdefault(other, {"last": None, "unread": 0})
+        entry["last"] = m
+        if m["to"] == me and not m.get("read"):
+            entry["unread"] += 1
+
+    chats = []
+
+    for other, e in dm.items():
+        u = verified.get(other)
+        if not u:
+            continue
+        pu = public_user(u)
+        chats.append({
+            "key": other, "type": "user", "name": pu["name"],
+            "avatar": pu["avatar"], "online": pu["online"],
+            "last": _preview(e["last"], me, names, False),
+            "ts": e["last"].get("ts", 0), "unread": e["unread"],
+        })
+
+    for g in groups:
+        msgs = group_msgs.get(g["id"], [])
+        seen = g.get("reads", {}).get(me, 0)
+        unread = sum(1 for m in msgs if m["id"] > seen and m["from"] != me)
+        last = msgs[-1] if msgs else None
+        chats.append({
+            "key": "g:" + g["id"], "type": "group", "name": g["name"],
+            "members": g["members"],
+            "last": _preview(last, me, names, True) if last else None,
+            "ts": last.get("ts", 0) if last else g.get("created_at", 0),
+            "unread": unread,
+        })
+
+    chats.sort(key=lambda c: c["ts"], reverse=True)
+
+    people = [public_user(u) for uid, u in verified.items() if uid != me]
+    people.sort(key=lambda p: p["name"].lower())
+
+    return jsonify({
+        "chats": chats,
+        "users": people,
+        "me": me_payload(find_user(users, me)),
     })
 
-    save_messages(messages)
+
+# ---------------- PROFILE ---------------- #
+
+@app.route("/api/user/<userid>")
+@api_login_required
+def api_user(me, userid):
+    u = verified_map(load_users()).get(userid)
+    if not u:
+        return err("User not found", 404)
+    return jsonify({"status": "ok", "user": public_user(u)})
+
+
+@app.route("/api/profile", methods=["POST"])
+@api_login_required
+def api_profile(me):
+
+    data = request.get_json(silent=True) or {}
+    limits = {"name": 30, "status": 80, "about": 100}
+
+    with users_lock:
+        users = load_users()
+        user = find_user(users, me)
+
+        for field, limit in limits.items():
+            if field in data:
+                value = " ".join(str(data[field]).split())[:limit]
+                if field == "name" and not value:
+                    return err("Name can't be empty")
+                user[field] = value
+
+        save_users(users)
+        return jsonify({"status": "ok", "me": me_payload(user)})
+
+
+def _profile_file(userid):
+    # hashed so any user id is a safe file name
+    return hashlib.sha256(userid.encode()).hexdigest()[:24] + ".jpg"
+
+
+def _save_profile_image(me, kind, size):
+    f = request.files.get("file")
+    if not f:
+        return err("Choose a photo first")
+
+    try:
+        img = Image.open(f.stream)
+        img = ImageOps.exif_transpose(img).convert("RGB")
+        img = ImageOps.fit(img, size, Image.LANCZOS)
+    except Exception:
+        return err("That image can't be read. Try a JPG or PNG.")
+
+    img.save(os.path.join(UPLOAD_DIR, kind, _profile_file(me)), "JPEG", quality=88)
+
+    with users_lock:
+        users = load_users()
+        user = find_user(users, me)
+        user[kind[:-1] + "_v"] = int(time.time())   # avatars -> avatar_v, covers -> cover_v
+        save_users(users)
+        return jsonify({"status": "ok", "me": me_payload(user)})
+
+
+@app.route("/api/avatar", methods=["POST"])
+@api_login_required
+def api_avatar(me):
+    return _save_profile_image(me, "avatars", (320, 320))
+
+
+@app.route("/api/cover", methods=["POST"])
+@api_login_required
+def api_cover(me):
+    return _save_profile_image(me, "covers", (1000, 400))
+
+
+# ---------------- MEDIA (login needed for everything) ---------------- #
+
+def _serve_profile_image(kind, userid):
+    fname = _profile_file(userid)
+    folder = os.path.join(UPLOAD_DIR, kind)
+    if not os.path.exists(os.path.join(folder, fname)):
+        abort(404)
+    resp = send_from_directory(folder, fname, mimetype="image/jpeg", max_age=604800)
+    resp.cache_control.private = True
+    return resp
+
+
+@app.route("/media/avatar/<userid>")
+@api_login_required
+def media_avatar(me, userid):
+    return _serve_profile_image("avatars", userid)
+
+
+@app.route("/media/cover/<userid>")
+@api_login_required
+def media_cover(me, userid):
+    return _serve_profile_image("covers", userid)
+
+
+def _can_open_file(me, name):
+    for m in load_messages():
+        if m.get("file") == name:
+            gid = m.get("group")
+            if gid:
+                g = find_group(load_groups(), gid)
+                return bool(g and me in g["members"])
+            return me in (m["from"], m.get("to"))
+    return False
+
+
+@app.route("/media/file/<name>")
+@api_login_required
+def media_file(me, name):
+
+    if not MEDIA_NAME_RE.match(name) or not _can_open_file(me, name):
+        abort(404)
+
+    ext = name.rsplit(".", 1)[1]
+    resp = send_from_directory(
+        os.path.join(UPLOAD_DIR, "files"), name,
+        mimetype=MEDIA_MIME.get(ext, "application/octet-stream"), max_age=604800,
+    )
+    resp.cache_control.private = True
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    return resp
+
+
+def save_upload(f):
+    """Returns (kind, filename, error). Photos are re-encoded, so only real images get through."""
+    mime = (f.mimetype or "").lower()
+
+    if mime.startswith("image/"):
+        try:
+            img = Image.open(f.stream)
+            img = ImageOps.exif_transpose(img)
+            if img.mode in ("RGBA", "LA", "P"):
+                img = img.convert("RGBA")
+                bg = Image.new("RGB", img.size, (255, 255, 255))
+                bg.paste(img, mask=img.split()[-1])
+                img = bg
+            else:
+                img = img.convert("RGB")
+            img.thumbnail((1600, 1600))
+        except Exception:
+            return None, None, "That image can't be read. Try a JPG or PNG."
+
+        name = secrets.token_urlsafe(16) + ".jpg"
+        img.save(os.path.join(UPLOAD_DIR, "files", name), "JPEG", quality=85)
+        return "image", name, None
+
+    ext = AUDIO_TYPES.get(mime)
+    if ext:
+        name = secrets.token_urlsafe(16) + "." + ext
+        f.save(os.path.join(UPLOAD_DIR, "files", name))
+        return "audio", name, None
+
+    return None, None, "Only photos and voice messages can be sent"
+
+
+# ---------------- GROUPS ---------------- #
+
+@app.route("/api/groups", methods=["POST"])
+@api_login_required
+def api_group_create(me):
+
+    data = request.get_json(silent=True) or {}
+    name = " ".join(str(data.get("name", "")).split())[:40]
+
+    if not name:
+        return err("Give the group a name")
+
+    verified = verified_map(load_users())
+    wanted = data.get("members") or []
+    members = [m for m in dict.fromkeys(wanted) if isinstance(m, str) and m in verified and m != me]
+
+    if not members:
+        return err("Pick at least one member")
+
+    gid = secrets.token_hex(6)
+
+    with groups_lock:
+        groups = load_groups()
+        groups.append({
+            "id": gid, "name": name, "admin": me,
+            "members": [me] + members,
+            "created_at": time.time(), "reads": {},
+        })
+        save_groups(groups)
+
+    return jsonify({"status": "ok", "key": "g:" + gid})
+
+
+@app.route("/api/groups/<gid>")
+@api_login_required
+def api_group_info(me, gid):
+
+    g = find_group(load_groups(), gid)
+    if not g or me not in g["members"]:
+        return err("Group not found", 404)
+
+    by_id = {u["userid"]: u for u in load_users()}
+    members = [public_user(by_id[m]) for m in g["members"] if m in by_id]
+
+    return jsonify({
+        "status": "ok", "id": g["id"], "name": g["name"],
+        "admin": g["admin"], "members": members,
+    })
+
+
+@app.route("/api/groups/<gid>/leave", methods=["POST"])
+@api_login_required
+def api_group_leave(me, gid):
+
+    with groups_lock:
+        groups = load_groups()
+        g = find_group(groups, gid)
+        if not g or me not in g["members"]:
+            return err("Group not found", 404)
+
+        g["members"].remove(me)
+        g.get("reads", {}).pop(me, None)
+
+        if not g["members"]:
+            groups.remove(g)
+            with messages_lock:
+                save_messages([m for m in load_messages() if m.get("group") != gid])
+        elif g["admin"] == me:
+            g["admin"] = g["members"][0]
+
+        save_groups(groups)
 
     return jsonify({"status": "ok"})
 
 
-# ---------------- LOAD CHAT ---------------- #
+# ---------------- SEND MESSAGE (text, photo or voice) ---------------- #
 
-@app.route("/messages/<receiver>")
-def messages(receiver):
+@app.route("/send", methods=["POST"])
+@api_login_required
+def send(me):
 
-    if "user" not in session:
-        return jsonify([])
+    receiver = request.form.get("receiver", "").strip().lower()
+    message = request.form.get("message", "").strip()[:2000]
+    upload = request.files.get("file")
 
-    me = session["user"]
+    if not receiver:
+        return err("Receiver required")
 
-    all_messages = load_messages()
+    if receiver.startswith("g:"):
+        g = find_group(load_groups(), receiver[2:])
+        if not g or me not in g["members"]:
+            return err("You are not in this group", 403)
+        target = {"group": g["id"], "to": ""}
+    else:
+        if receiver == me or receiver not in verified_map(load_users()):
+            return err("User not found", 404)
+        target = {"to": receiver}
 
-    chat = []
+    kind, filename = "text", None
 
-    for m in all_messages:
+    if upload and upload.filename:
+        kind, filename, problem = save_upload(upload)
+        if problem:
+            return err(problem)
+    elif not message:
+        return err("Message can't be empty")
 
-        if (
-            (m["from"] == me and m["to"] == receiver)
-            or
-            (m["from"] == receiver and m["to"] == me)
-        ):
+    with messages_lock:
+        messages = load_messages()
+        messages.append({
+            "id": max([m["id"] for m in messages] or [0]) + 1,
+            "from": me,
+            "message": message,
+            "type": kind,
+            "file": filename,
+            "ts": time.time(),
+            "read": False,
+            **target,
+        })
+        save_messages(messages)
 
-            chat.append(m)
+    return jsonify({"status": "ok"})
 
-    return jsonify(chat)
+
+# ---------------- LOAD CHAT (also marks messages as read) ---------------- #
+
+def _client_msg(m, names):
+    f = m.get("file")
+    return {
+        "id": m["id"],
+        "from": m["from"],
+        "from_name": names.get(m["from"], m["from"]),
+        "type": m.get("type", "text"),
+        "message": m.get("message", ""),
+        "file": "/media/file/" + f if f else None,
+        "ts": m.get("ts", 0),
+        "read": bool(m.get("read")),
+    }
+
+
+@app.route("/messages/<key>")
+@api_login_required
+def messages(me, key):
+
+    names = {u["userid"]: u.get("name") or u["userid"] for u in load_users()}
+    chat_msgs = []
+
+    if key.startswith("g:"):
+        gid = key[2:]
+
+        with groups_lock:
+            groups = load_groups()
+            g = find_group(groups, gid)
+            if not g or me not in g["members"]:
+                return err("Group not found", 404)
+
+            chat_msgs = [m for m in load_messages() if m.get("group") == gid]
+
+            if chat_msgs:
+                newest = chat_msgs[-1]["id"]
+                reads = g.setdefault("reads", {})
+                if reads.get(me, 0) < newest:
+                    reads[me] = newest
+                    save_groups(groups)
+    else:
+        other = key.lower()
+
+        with messages_lock:
+            all_messages = load_messages()
+            changed = False
+
+            for m in all_messages:
+                if m.get("group"):
+                    continue
+                if (m["from"] == me and m["to"] == other) or (m["from"] == other and m["to"] == me):
+                    chat_msgs.append(m)
+                    if m["to"] == me and not m.get("read"):
+                        m["read"] = True      # this is what turns the ticks blue for the sender
+                        changed = True
+
+            if changed:
+                save_messages(all_messages)
+
+    return jsonify([_client_msg(m, names) for m in chat_msgs])
 
 
 # ---------------- LOGOUT ---------------- #

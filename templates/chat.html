@@ -10,119 +10,613 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="chat-page">
-<div class="app" id="app">
+
+<!-- icon set -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1.2-4.3A8 8 0 1121 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" stroke-width="2.6"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17.5 14.6c2.4.3 3.9 2 3.9 4.4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M11 4H5a2 2 0 00-2 2v13a2 2 0 002 2h13a2 2 0 002-2v-6"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01" stroke-width="2.6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="M21.4 11l-9.2 9.2a6 6 0 01-8.5-8.5l9.2-9.2a4 4 0 015.7 5.7l-9.2 9.2a2 2 0 01-2.8-2.8l8.5-8.5"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v4"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="i-dcheck" viewBox="0 0 24 24"><path d="M1.5 13l4.5 4.5L15 7"/><path d="M10 16l1.5 1.5L22 7"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+</svg>
+
+<div class="app" id="app" data-view="chats">
 
   <aside class="side">
-    <div class="side-top">
-      <span class="brand">
-        <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#1f5eff"/><path d="M12 9l12 7-12 7z" fill="#fff"/></svg>
-        DirectLine
-      </span>
-      <a class="logout" href="/logout">Log out</a>
-    </div>
-    <div class="me"><div id="meAv"></div><div><b>{{ me }}</b><small>Signed in</small></div></div>
-    <input type="text" id="search" placeholder="Search users" autocomplete="off">
-    <div class="users" id="users"></div>
+
+    <!-- Chats -->
+    <section class="view v-chats">
+      <header class="s-head">
+        <button class="me-btn" id="meBtn" aria-label="Open settings"></button>
+        <h1>Chats</h1>
+        <button class="ic" id="searchToggle" aria-label="Search chats"><svg class="i"><use href="#i-search"/></svg></button>
+      </header>
+      <div class="searchbar" id="searchbar" hidden><input type="text" id="search" placeholder="Search chats" autocomplete="off"></div>
+      <div class="pills">
+        <button class="pill on" data-filter="all">All</button>
+        <button class="pill" data-filter="groups">Groups</button>
+      </div>
+      <div class="list" id="chatList"></div>
+      <button class="fab" id="fab" aria-label="New chat"><svg class="i"><use href="#i-edit"/></svg></button>
+    </section>
+
+    <!-- Groups -->
+    <section class="view v-groups">
+      <header class="s-head">
+        <h1>Groups</h1>
+        <button class="ic" data-act="newgroup" aria-label="New group"><svg class="i"><use href="#i-plus"/></svg></button>
+      </header>
+      <div class="list" id="groupList"></div>
+    </section>
+
+    <!-- Settings -->
+    <section class="view v-settings">
+      <div class="cover" id="cover">
+        <button class="cbtn" id="coverBtn" aria-label="Change cover photo"><svg class="i"><use href="#i-cam"/></svg></button>
+      </div>
+      <div class="prof">
+        <button class="avbtn" id="avBtn" aria-label="Change profile photo">
+          <span id="setAv"></span>
+          <span class="cam"><svg class="i"><use href="#i-cam"/></svg></span>
+        </button>
+        <h2><button class="editable" id="setName"></button></h2>
+        <button class="editable st" id="setStatus"></button>
+      </div>
+      <div class="card2">
+        <button class="prow" id="aboutRow"><svg class="i"><use href="#i-user"/></svg><span class="t"><b>About</b><span id="setAbout"></span></span><svg class="i"><use href="#i-chev"/></svg></button>
+        <div class="prow plain"><svg class="i"><use href="#i-mail"/></svg><span class="t"><b>Email</b><span id="setEmail"></span></span></div>
+      </div>
+      <p class="hint">Tap your photo, name, status or About to change them.</p>
+      <div class="card2">
+        <a class="prow danger" href="/logout"><svg class="i"><use href="#i-out"/></svg><span class="t">Log out</span></a>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab on" data-view="chats"><svg class="i"><use href="#i-chat"/></svg>Chats<span class="cnt" id="tabCnt" hidden></span></button>
+      <button class="tab" data-view="groups"><svg class="i"><use href="#i-users"/></svg>Groups</button>
+      <button class="tab" data-view="settings"><svg class="i"><use href="#i-gear"/></svg>Settings</button>
+    </nav>
   </aside>
 
-  <section class="pane">
-    <header class="pane-top">
-      <button class="icon-btn" id="back" aria-label="Back to users">&larr;</button>
-      <div id="chatAv"></div>
-      <h2 id="chatUser">Select a user</h2>
-    </header>
-    <div class="messages" id="messages">
-      <p class="empty">Pick someone from the list to start chatting.</p>
+  <section class="pane idle" id="pane">
+    <div class="blank">
+      <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#1f5eff"/><path d="M12 9l12 7-12 7z" fill="#fff"/></svg>
+      <p><b>DirectLine</b><br>Pick a chat or tap the pencil to start a new one.</p>
     </div>
+    <header class="pane-top">
+      <button class="ic back" id="back" aria-label="Back to chats"><svg class="i"><use href="#i-back"/></svg></button>
+      <button class="hd" id="hdBtn">
+        <span id="chatAv"></span>
+        <div><h2 id="chatName"></h2><small id="chatSub"></small></div>
+      </button>
+    </header>
+    <div class="messages" id="messages"></div>
+    <div class="emojis" id="emojis" hidden></div>
     <form class="composer" id="sendForm">
-      <input type="text" id="messageInput" placeholder="Type a message" autocomplete="off" disabled required>
-      <button class="send" id="sendBtn" disabled>Send</button>
+      <div class="field">
+        <button type="button" class="ic" id="emojiBtn" aria-label="Emoji"><svg class="i"><use href="#i-smile"/></svg></button>
+        <input type="text" id="messageInput" placeholder="Type a message" autocomplete="off" maxlength="2000">
+        <button type="button" class="ic" id="clipBtn" aria-label="Attach photo"><svg class="i"><use href="#i-clip"/></svg></button>
+        <button type="button" class="ic" id="camBtn" aria-label="Take photo"><svg class="i"><use href="#i-cam"/></svg></button>
+      </div>
+      <div class="recbar" id="recbar">
+        <span class="dot"></span><span id="recTime">0:00</span><span class="lbl">Recording voice message</span>
+        <button type="button" class="ic" id="recCancel" aria-label="Cancel recording"><svg class="i"><use href="#i-trash"/></svg></button>
+      </div>
+      <button type="button" class="act" id="actBtn" aria-label="Record voice message"></button>
     </form>
+    <input type="file" id="fileGallery" accept="image/*" hidden>
+    <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
   </section>
 
 </div>
 
+<!-- new chat -->
+<dialog id="newDlg">
+  <div class="sh-head"><h3>New chat</h3><button class="ic" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="sh-body">
+    <input type="text" id="newSearch" placeholder="Search users" autocomplete="off">
+    <button class="row" data-act="newgroup"><span class="pick"><span class="plain-ic"><svg class="i"><use href="#i-users"/></svg></span></span><b>New group</b></button>
+    <div id="newList"></div>
+  </div>
+</dialog>
+
+<!-- new group -->
+<dialog id="groupDlg">
+  <div class="sh-head"><h3>New group</h3><button class="ic" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="sh-body">
+    <input type="text" id="groupName" placeholder="Group name" maxlength="40" autocomplete="off">
+    <label>Add members <span id="pickCount" class="hint"></span></label>
+    <div id="pickList"></div>
+    <button class="btn" id="groupCreate">Create group</button>
+  </div>
+</dialog>
+
+<!-- edit profile field -->
+<dialog id="editDlg">
+  <form class="sh-body" id="editForm" style="padding-top:18px">
+    <h3 id="editTitle"></h3>
+    <input type="text" id="editInput" autocomplete="off">
+    <div class="dl-actions">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button class="btn" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- photo preview before sending -->
+<dialog id="imgDlg">
+  <div class="sh-body" style="padding-top:16px">
+    <img id="imgPrev" class="prev" alt="Selected photo">
+    <input type="text" id="imgCap" placeholder="Add a caption" maxlength="500" autocomplete="off">
+    <div class="dl-actions">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="button" class="btn" id="imgSend">Send</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- profile / group info -->
+<dialog id="infoDlg"><div id="infoBody"></div></dialog>
+
+<!-- full size photo -->
+<dialog id="viewDlg"><img id="viewImg" alt="Photo"></dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
 <script>
-const me = {{ me|tojson }};
-let users = {{ users|tojson }};
-let current = "", lastSig = "";
+let ME = {{ profile|tojson }};
+let chats = [], users = [], usersById = {};
+let cur = null, filter = "all", loaded = false;
+const rendered = new Map();
+let lastDay = "", pinned = true, pendingImg = null;
+
 const $ = id => document.getElementById(id);
-
-// escape everything that comes from users before putting it in the page
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function av(n){
-  let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return `<span class="av" style="background:hsl(${h} 60% 45%)">${esc((n[0] || "?").toUpperCase())}</span>`;
+const I = (n, cls = "") => `<svg class="i ${cls}"><use href="#i-${n}"/></svg>`;
+const hue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const setHtml = (id, html) => { const el = $(id); if (el._h !== html) { el._h = html; el.innerHTML = html; } };
+const isMobile = () => matchMedia("(max-width:768px)").matches;
+
+let toastTimer;
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
 }
 
-function renderUsers(){
+async function api(url, opts){
+  try {
+    const r = await fetch(url, opts);
+    if (r.status === 401) { location.href = "/"; return null; }
+    return await r.json();
+  } catch (e) { return null; }
+}
+const postJson = (url, body) => api(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+/* ---------- avatars ---------- */
+function av(name, uid, ver, cls = ""){
+  const img = ver ? `<img src="/media/avatar/${encodeURIComponent(uid)}?v=${ver}" alt="" onerror="this.remove()">` : "";
+  return `<span class="av ${cls}" style="background:hsl(${hue(uid)} 55% 46%)">${esc(Array.from(name || "?")[0].toUpperCase())}${img}</span>`;
+}
+const gav = (key, cls = "") => `<span class="av ${cls}" style="background:hsl(${hue(key)} 50% 42%)">${I("users")}</span>`;
+const avOf = (c, cls = "") => c.type === "group" ? gav(c.key, cls) : av(c.name, c.key, c.avatar, cls);
+const nameOf = id => id === ME.userid ? ME.name : (usersById[id] ? usersById[id].name : id);
+
+/* ---------- time ---------- */
+const fmtTime = ts => ts ? new Date(ts * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+function dayDiff(d){ const a = new Date(); a.setHours(0,0,0,0); const b = new Date(d); b.setHours(0,0,0,0); return Math.round((a - b) / 864e5); }
+function listTime(ts){
+  if (!ts) return "";
+  const d = new Date(ts * 1000), n = dayDiff(d);
+  return n === 0 ? fmtTime(ts) : n === 1 ? "Yesterday" : d.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+function dayLabel(ts){
+  if (!ts) return "Earlier";
+  const d = new Date(ts * 1000), n = dayDiff(d);
+  return n === 0 ? "Today" : n === 1 ? "Yesterday" : d.toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" });
+}
+
+/* ---------- tabs ---------- */
+function setView(v){
+  $("app").dataset.view = v;
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === v));
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => setView(t.dataset.view)));
+$("meBtn").addEventListener("click", () => setView("settings"));
+
+/* ---------- chat list ---------- */
+function row(c){
+  const last = c.last ? (c.last.who ? c.last.who + ": " : "") + c.last.text : (c.type === "group" ? "No messages yet" : "");
+  return `<button class="row${cur && cur.key === c.key ? " active" : ""}" data-key="${esc(c.key)}">${avOf(c)}
+    <span class="mid"><span class="nm">${esc(c.name)}</span><span class="pv">${esc(last)}</span></span>
+    <span class="end"><time>${listTime(c.ts)}</time>${c.unread ? `<i class="badge">${c.unread > 99 ? "99+" : c.unread}</i>` : ""}</span></button>`;
+}
+
+function renderAll(){
   const q = $("search").value.trim().toLowerCase();
-  const list = users.filter(u => u.toLowerCase().includes(q));
-  $("users").innerHTML = list.length
-    ? list.map(u => `<button class="user${u === current ? " active" : ""}" data-user="${esc(u)}">${av(u)}<span>${esc(u)}</span></button>`).join("")
-    : `<p class="empty">${users.length ? "No user found." : "No one else has joined yet."}</p>`;
+  const match = c => !q || c.name.toLowerCase().includes(q) || (c.last && c.last.text.toLowerCase().includes(q));
+  const list = chats.filter(c => (filter === "all" || c.type === "group") && match(c));
+  setHtml("chatList", list.length ? list.map(row).join("")
+    : `<p class="empty">${q ? "No chats found." : filter === "groups" ? "No groups yet." : "No chats yet.<br>Tap the pencil button to start one."}</p>`);
+
+  const groups = chats.filter(c => c.type === "group");
+  setHtml("groupList", groups.length ? groups.map(row).join("")
+    : `<div class="empty">You are not in any group yet.<br><button class="btn slim" data-act="newgroup">Create a group</button></div>`);
+
+  const total = chats.reduce((s, c) => s + c.unread, 0);
+  $("tabCnt").hidden = !total; $("tabCnt").textContent = total > 99 ? "99+" : total;
+  document.title = total ? `(${total}) DirectLine` : "DirectLine";
 }
 
-function refreshUsers(){
-  fetch("/api/users").then(r => r.json()).then(d => {
-    if (JSON.stringify(d) !== JSON.stringify(users)) { users = d; renderUsers(); }
-  });
+async function refreshChats(){
+  if (document.hidden && loaded) return;
+  const d = await api("/api/chats");
+  if (!d || !d.chats) return;
+  chats = d.chats; users = d.users; ME = d.me;
+  usersById = Object.fromEntries(users.map(u => [u.userid, u]));
+  renderAll(); renderSettings();
+  if (cur) {
+    if (cur.type === "group" && loaded && !chats.some(c => c.key === cur.key)) closeChat();
+    else updateHeader();
+  }
+  loaded = true;
 }
 
-function openChat(u){
-  current = u; lastSig = "";
-  $("chatUser").textContent = u;
-  $("chatAv").innerHTML = av(u);
-  $("messageInput").disabled = false;
-  $("sendBtn").disabled = false;
-  $("app").classList.add("open");
-  $("messages").innerHTML = "";
-  renderUsers();
-  loadMessages();
-  $("messageInput").focus();
-}
-
-function loadMessages(){
-  const u = current;
-  if (!u) return;
-  fetch("/messages/" + encodeURIComponent(u)).then(r => r.json()).then(data => {
-    if (u !== current) return;
-    const sig = JSON.stringify(data);
-    if (sig === lastSig) return;          // nothing new, keep scroll position
-    lastSig = sig;
-    const box = $("messages");
-    box.innerHTML = data.length
-      ? data.map(m => `<div class="msg ${m.from === me ? "me" : "them"}">${esc(m.message)}</div>`).join("")
-      : `<p class="empty">No messages yet. Say hello to ${esc(u)}.</p>`;
-    box.scrollTop = box.scrollHeight;
-  });
-}
-
-$("users").addEventListener("click", e => {
-  const b = e.target.closest(".user");
-  if (b) openChat(b.dataset.user);
+document.querySelectorAll(".pill").forEach(p => p.addEventListener("click", () => {
+  filter = p.dataset.filter;
+  document.querySelectorAll(".pill").forEach(x => x.classList.toggle("on", x === p));
+  renderAll();
+}));
+$("searchToggle").addEventListener("click", () => {
+  const bar = $("searchbar"); bar.hidden = !bar.hidden;
+  if (bar.hidden) { $("search").value = ""; renderAll(); } else $("search").focus();
 });
-$("search").addEventListener("input", renderUsers);
-$("back").addEventListener("click", () => $("app").classList.remove("open"));
+$("search").addEventListener("input", renderAll);
+["chatList", "groupList"].forEach(id => $(id).addEventListener("click", e => {
+  const b = e.target.closest(".row[data-key]"); if (b) openChat(b.dataset.key);
+}));
 
-$("sendForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const input = $("messageInput"), message = input.value.trim();
-  if (!current || !message) return;
+/* ---------- open / close a chat ---------- */
+function openChat(key){
+  let c = chats.find(x => x.key === key);
+  if (!c) {
+    const u = usersById[key]; if (!u) return;
+    c = { key: u.userid, type: "user", name: u.name, avatar: u.avatar, online: u.online, unread: 0 };
+  }
+  cur = c; rendered.clear(); lastDay = ""; pinned = true;
+  $("messages").innerHTML = ""; $("messages")._empty = false;
+  $("pane").classList.remove("idle"); $("app").classList.add("open");
+  $("emojis").hidden = true;
+  updateHeader(); renderAll(); loadMessages(true);
+  if (!isMobile()) $("messageInput").focus();
+}
+function closeChat(){
+  cur = null; $("pane").classList.add("idle"); $("app").classList.remove("open"); renderAll();
+}
+$("back").addEventListener("click", closeChat);
+
+function updateHeader(){
+  const c = chats.find(x => x.key === cur.key);
+  if (c) cur = { ...cur, ...c };
+  if (cur.type === "user" && usersById[cur.key]) {
+    const u = usersById[cur.key]; cur = { ...cur, name: u.name, avatar: u.avatar, online: u.online };
+  }
+  setHtml("chatAv", avOf(cur, "s"));
+  $("chatName").textContent = cur.name;
+  const sub = $("chatSub");
+  if (cur.type === "group") { sub.textContent = (cur.members || []).map(id => id === ME.userid ? "You" : nameOf(id)).join(", "); sub.className = ""; }
+  else { sub.textContent = cur.online ? "Online" : "Offline"; sub.className = cur.online ? "on" : ""; }
+}
+
+/* ---------- messages ---------- */
+const meta = (m, cls = "") => `<span class="meta ${cls}">${fmtTime(m.ts)}${m.from === ME.userid && cur.type === "user"
+  ? `<svg class="tk${m.read ? " seen" : ""}"><use href="#i-dcheck"/></svg>` : ""}</span>`;
+
+function msgHtml(m){
+  const mine = m.from === ME.userid;
+  let body = "";
+  if (cur.type === "group" && !mine) body += `<b class="who" style="color:hsl(${hue(m.from)} 55% 36%)">${esc(m.from_name)}</b>`;
+  if (m.type === "image") {
+    body += `<span class="picwrap"><img class="pic" src="${esc(m.file)}" alt="Photo" onload="if(pinned)toBottom()">${m.message ? "" : meta(m, "ov")}</span>`;
+    if (m.message) body += `<span class="txt">${esc(m.message)}</span>${meta(m)}`;
+  } else if (m.type === "audio") {
+    body += `<audio controls preload="metadata" src="${esc(m.file)}"></audio>${meta(m)}`;
+  } else {
+    body += `<span class="txt">${esc(m.message)}</span>${meta(m)}`;
+  }
+  return `<div class="msg ${mine ? "me" : "them"}${m.type === "image" ? " img" : ""}" data-id="${m.id}">${body}</div>`;
+}
+
+const toBottom = () => { const b = $("messages"); b.scrollTop = b.scrollHeight; };
+$("messages").addEventListener("scroll", () => { const b = $("messages"); pinned = b.scrollHeight - b.scrollTop - b.clientHeight < 80; });
+
+async function loadMessages(force = false){
+  if (!cur || (document.hidden && !force)) return;
+  const key = cur.key;
+  const data = await api("/messages/" + encodeURIComponent(key));
+  if (!Array.isArray(data) || !cur || cur.key !== key) return;
+
+  const box = $("messages");
+  const stick = pinned || force;
+  let added = false;
+
+  for (const m of data) {
+    let el = rendered.get(m.id);
+    if (!el) {
+      const day = dayLabel(m.ts);
+      if (day !== lastDay) { box.insertAdjacentHTML("beforeend", `<div class="day"><span>${esc(day)}</span></div>`); lastDay = day; }
+      box.insertAdjacentHTML("beforeend", msgHtml(m));
+      rendered.set(m.id, box.lastElementChild);
+      added = true;
+    } else if (m.from === ME.userid) {
+      const tk = el.querySelector(".tk"); if (tk) tk.classList.toggle("seen", m.read);
+    }
+  }
+
+  const emptyEl = box.querySelector(".empty");
+  if (!data.length && !emptyEl) box.innerHTML = `<p class="empty">No messages yet.<br>Say hello to ${esc(cur.name)}.</p>`;
+  else if (data.length && emptyEl) emptyEl.remove();
+
+  if (added && stick) toBottom();
+  if (added && data.length) refreshChats();      // keeps unread badges in step
+}
+
+/* ---------- sending ---------- */
+async function post(key, message, file){
   const fd = new FormData();
-  fd.append("receiver", current);
-  fd.append("message", message);
-  input.value = "";
-  fetch("/send", { method: "POST", body: fd }).then(r => r.json()).then(d => {
-    if (d.status === "ok") loadMessages();
-    else { input.value = message; alert(d.message || "Message could not be sent"); }
-  });
+  fd.append("receiver", key); fd.append("message", message);
+  if (file) fd.append("file", file, file.name);
+  const d = await api("/send", { method: "POST", body: fd });
+  if (d && d.status === "ok") { loadMessages(true); refreshChats(); return true; }
+  toast((d && d.message) || "Message could not be sent");
+  return false;
+}
+async function sendText(){
+  const input = $("messageInput"), v = input.value.trim();
+  if (!cur || !v) return;
+  input.value = ""; syncAct(); $("emojis").hidden = true;
+  if (!(await post(cur.key, v))) { input.value = v; syncAct(); }
+}
+$("sendForm").addEventListener("submit", e => { e.preventDefault(); if (!rec) sendText(); });
+$("messageInput").addEventListener("input", syncAct);
+
+/* mic <-> send button */
+let rec = null, recTimer = null, recStart = 0, recCancelled = false;
+function syncAct(){
+  const send = rec || $("messageInput").value.trim();
+  $("actBtn").innerHTML = I(send ? "send" : "mic");
+  $("actBtn").setAttribute("aria-label", send ? "Send" : "Record voice message");
+}
+$("actBtn").addEventListener("click", () => {
+  if (rec) { rec.stop(); return; }
+  if ($("messageInput").value.trim()) sendText(); else startRec();
 });
 
-$("meAv").innerHTML = av(me);
-renderUsers();
+async function startRec(){
+  if (!cur) return;
+  if (!navigator.mediaDevices || !window.MediaRecorder) { toast("Voice messages are not supported in this browser"); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { toast("Allow microphone access to send voice messages"); return; }
+
+  const key = cur.key, chunks = [];
+  const mr = new MediaRecorder(stream);
+  recCancelled = false;
+  mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    clearInterval(recTimer); rec = null;
+    $("sendForm").classList.remove("rec"); syncAct();
+    if (recCancelled || !chunks.length || Date.now() - recStart < 700) return;
+    const type = mr.mimeType || "audio/webm";
+    const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+    post(key, "", new File([new Blob(chunks, { type })], "voice." + ext, { type }));
+  };
+  mr.start(); rec = mr; recStart = Date.now();
+  $("sendForm").classList.add("rec"); $("recTime").textContent = "0:00"; syncAct();
+  recTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - recStart) / 1000);
+    $("recTime").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    if (s >= 120) mr.stop();
+  }, 250);
+}
+$("recCancel").addEventListener("click", () => { recCancelled = true; if (rec) rec.stop(); });
+
+/* emoji */
+const EMOJI = "😀 😁 😂 🤣 😊 😍 😘 😎 🤩 🥳 😇 🙂 😉 😌 😴 🤔 😅 😢 😭 😡 🥺 😱 🤗 🙄 😏 👍 👎 👏 🙌 🙏 💪 👌 ✌️ 🤝 👋 🔥 ✨ 💯 🎉 ❤️ 💙 💔 😋 🤞 👀 ☕ 🍕 📚 💻 📝 🎓 ⏰ ✅ ❌ 🎧 🚀 🌟 🎂 🙈".split(" ");
+$("emojis").innerHTML = EMOJI.map(e => `<button type="button">${e}</button>`).join("");
+$("emojiBtn").addEventListener("click", () => { $("emojis").hidden = !$("emojis").hidden; });
+$("emojis").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const i = $("messageInput"), s = i.selectionStart ?? i.value.length;
+  i.setRangeText(b.textContent, s, i.selectionEnd ?? s, "end"); i.focus(); syncAct();
+});
+
+/* photos */
+function shrink(file, max){
+  return new Promise(res => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => { URL.revokeObjectURL(url); res(b ? new File([b], "photo.jpg", { type: "image/jpeg" }) : file); }, "image/jpeg", .85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); res(file); };
+    img.src = url;
+  });
+}
+async function pickImage(input){
+  const file = input.files[0]; input.value = "";
+  if (!file || !cur) return;
+  if (!file.type.startsWith("image/")) { toast("Choose an image file"); return; }
+  pendingImg = await shrink(file, 1600);
+  $("imgPrev").src = URL.createObjectURL(pendingImg);
+  $("imgCap").value = $("messageInput").value.trim();
+  $("imgDlg").showModal();
+}
+$("clipBtn").addEventListener("click", () => $("fileGallery").click());
+$("camBtn").addEventListener("click", () => $("fileCam").click());
+$("fileGallery").addEventListener("change", e => pickImage(e.target));
+$("fileCam").addEventListener("change", e => pickImage(e.target));
+$("imgDlg").addEventListener("close", () => { URL.revokeObjectURL($("imgPrev").src); });
+$("imgSend").addEventListener("click", async () => {
+  if (!pendingImg || !cur) return;
+  const f = pendingImg, key = cur.key, cap = $("imgCap").value.trim(), typed = $("messageInput").value.trim();
+  pendingImg = null; $("imgDlg").close();
+  if (await post(key, cap, f) && cap && cap === typed) { $("messageInput").value = ""; syncAct(); }
+});
+$("messages").addEventListener("click", e => {
+  const p = e.target.closest(".pic"); if (p) { $("viewImg").src = p.src; $("viewDlg").showModal(); }
+});
+$("viewDlg").addEventListener("click", () => $("viewDlg").close());
+
+/* ---------- settings ---------- */
+function renderSettings(){
+  $("cover").style.backgroundImage = ME.cover ? `url(/media/cover/${encodeURIComponent(ME.userid)}?v=${ME.cover})` : "";
+  setHtml("setAv", av(ME.name, ME.userid, ME.avatar, "l"));
+  setHtml("meBtn", av(ME.name, ME.userid, ME.avatar, "s"));
+  $("setName").textContent = ME.name;
+  $("setStatus").textContent = ME.status || "Add a status";
+  $("setAbout").textContent = ME.about || "Add something about yourself";
+  $("setEmail").textContent = ME.email;
+}
+
+let editField = "";
+function edit(field, title, max){
+  editField = field; $("editTitle").textContent = title;
+  const i = $("editInput"); i.maxLength = max; i.value = ME[field] || "";
+  $("editDlg").showModal(); i.focus(); i.select();
+}
+$("setName").addEventListener("click", () => edit("name", "Your name", 30));
+$("setStatus").addEventListener("click", () => edit("status", "Your status", 80));
+$("aboutRow").addEventListener("click", () => edit("about", "About", 100));
+$("editForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const d = await postJson("/api/profile", { [editField]: $("editInput").value });
+  if (d && d.status === "ok") { ME = d.me; renderSettings(); $("editDlg").close(); }
+  else toast((d && d.message) || "Could not save");
+});
+
+async function uploadProfile(input, url, max){
+  const file = input.files[0]; input.value = "";
+  if (!file) return;
+  const small = await shrink(file, max);
+  const fd = new FormData(); fd.append("file", small, small.name);
+  const d = await api(url, { method: "POST", body: fd });
+  if (d && d.status === "ok") { ME = d.me; renderSettings(); refreshChats(); }
+  else toast((d && d.message) || "Could not upload the photo");
+}
+const picker = (url, max) => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => uploadProfile(i, url, max); i.click(); };
+$("avBtn").addEventListener("click", () => picker("/api/avatar", 640));
+$("coverBtn").addEventListener("click", () => picker("/api/cover", 1400));
+
+/* ---------- new chat / new group ---------- */
+function openNew(){
+  $("newSearch").value = ""; renderNew(); $("newDlg").showModal();
+}
+function renderNew(){
+  const q = $("newSearch").value.trim().toLowerCase();
+  const list = users.filter(u => !q || u.name.toLowerCase().includes(q) || u.userid.includes(q));
+  setHtml("newList", list.length ? list.map(u => `<button class="row" data-uid="${esc(u.userid)}">${av(u.name, u.userid, u.avatar)}
+      <span class="mid"><span class="nm">${esc(u.name)}</span><span class="pv">${esc(u.status || "")}</span></span></button>`).join("")
+    : `<p class="empty">${users.length ? "No user found." : "No one else has joined yet.<br>Ask your friends to sign up."}</p>`);
+}
+$("fab").addEventListener("click", openNew);
+$("newSearch").addEventListener("input", renderNew);
+$("newList").addEventListener("click", e => {
+  const b = e.target.closest("[data-uid]"); if (!b) return;
+  $("newDlg").close(); setView("chats"); openChat(b.dataset.uid);
+});
+
+const picked = new Set();
+function renderPick(){
+  setHtml("pickList", users.length ? users.map(u => `<button type="button" class="row pick${picked.has(u.userid) ? " sel" : ""}" data-uid="${esc(u.userid)}">${av(u.name, u.userid, u.avatar, "s")}
+      <span class="mid"><span class="nm">${esc(u.name)}</span></span><span class="chk">${I("check")}</span></button>`).join("")
+    : `<p class="empty">No one else has joined yet.</p>`);
+  $("pickCount").textContent = picked.size ? `(${picked.size} selected)` : "";
+}
+function openGroupDlg(){
+  picked.clear(); $("groupName").value = ""; $("pickList")._h = null; renderPick();
+  if ($("newDlg").open) $("newDlg").close();
+  $("groupDlg").showModal(); $("groupName").focus();
+}
+$("pickList").addEventListener("click", e => {
+  const b = e.target.closest("[data-uid]"); if (!b) return;
+  const id = b.dataset.uid; picked.has(id) ? picked.delete(id) : picked.add(id); renderPick();
+});
+$("groupCreate").addEventListener("click", async () => {
+  const d = await postJson("/api/groups", { name: $("groupName").value, members: [...picked] });
+  if (d && d.status === "ok") {
+    $("groupDlg").close(); await refreshChats(); setView("chats"); openChat(d.key);
+  } else toast((d && d.message) || "Could not create the group");
+});
+
+/* ---------- profile / group info ---------- */
+const infoRow = (icon, title, text) => `<div class="prow plain">${I(icon)}<span class="t"><b>${title}</b><span>${esc(text)}</span></span></div>`;
+
+async function showUser(uid){
+  const d = await api("/api/user/" + encodeURIComponent(uid));
+  if (!d || d.status !== "ok") return;
+  const u = d.user;
+  $("infoBody").innerHTML = `<div class="cover" style="${u.cover ? `background-image:url(/media/cover/${encodeURIComponent(u.userid)}?v=${u.cover})` : ""}">
+      <button class="cbtn" data-close aria-label="Close">${I("x")}</button></div>
+    <div class="prof">${av(u.name, u.userid, u.avatar, "l")}<h2>${esc(u.name)}</h2><p class="st">${esc(u.status)}</p></div>
+    <div class="card2">${infoRow("user", "About", u.about || "No about yet")}${infoRow("chat", "User ID", u.userid)}</div><div style="height:14px"></div>`;
+  $("infoDlg").showModal();
+}
+async function showGroup(key){
+  const gid = key.slice(2);
+  const d = await api("/api/groups/" + encodeURIComponent(gid));
+  if (!d || d.status !== "ok") return;
+  const c = chats.find(x => x.key === key);
+  $("infoBody").innerHTML = `<div class="sh-head"><h3>Group info</h3><button class="ic" data-close aria-label="Close">${I("x")}</button></div>
+    <div class="prof" style="margin-top:0">${gav(key, "l")}<h2>${esc(d.name)}</h2><p class="st">${d.members.length} members</p></div>
+    <div class="sh-body">${d.members.map(m => `<div class="row static">${av(m.name, m.userid, m.avatar, "s")}
+      <span class="mid"><span class="nm">${esc(m.userid === ME.userid ? m.name + " (You)" : m.name)}</span><span class="pv">${esc(m.status || "")}</span></span>
+      ${m.userid === d.admin ? '<span class="tag">Admin</span>' : ""}</div>`).join("")}
+      <button class="btn danger" data-leave="${esc(gid)}">Leave group</button></div>`;
+  $("infoDlg").showModal();
+}
+$("hdBtn").addEventListener("click", () => { if (!cur) return; cur.type === "group" ? showGroup(cur.key) : showUser(cur.key); });
+$("infoDlg").addEventListener("click", async e => {
+  if (e.target === $("infoDlg")) { $("infoDlg").close(); return; }
+  const b = e.target.closest("[data-leave]"); if (!b) return;
+  if (!confirm("Leave this group?")) return;
+  const d = await postJson("/api/groups/" + b.dataset.leave + "/leave", {});
+  if (d && d.status === "ok") { $("infoDlg").close(); closeChat(); refreshChats(); }
+  else toast((d && d.message) || "Could not leave the group");
+});
+
+/* ---------- shared dialog + action wiring ---------- */
+document.addEventListener("click", e => {
+  const close = e.target.closest("[data-close]"); if (close) { const d = close.closest("dialog"); if (d) d.close(); }
+  if (e.target.closest("[data-act=newgroup]")) openGroupDlg();
+  if (e.target.tagName === "DIALOG" && e.target.id !== "viewDlg") e.target.close();
+});
+
+/* ---------- start ---------- */
+renderSettings(); syncAct();
+refreshChats();
 setInterval(loadMessages, 2000);
-setInterval(refreshUsers, 3000);
+setInterval(refreshChats, 3000);
 </script>
 </body>
 </html>
