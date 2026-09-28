@@ -1,75 +1,52 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>DirectLine - Verify Email</title>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-</head>
-
-<body>
-
-<div class="login-box">
-
-    <h1>DirectLine</h1>
-
-    <p>Enter the 6-digit code sent to <strong>{{ email }}</strong></p>
-
-    {% if error %}
-    <p class="error">{{ error }}</p>
-    {% endif %}
-
-    {% if info %}
-    <p class="info">{{ info }}</p>
-    {% endif %}
-
-    <form action="/verify-email" method="POST">
-
-        <input
-            class="code-input"
-            type="text"
-            name="code"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            maxlength="6"
-            autocomplete="one-time-code"
-            placeholder="000000"
-            required
-            autofocus
-        >
-
-        <button type="submit">
-
-            Verify &amp; Continue
-
-        </button>
-
-    </form>
-
-    <form action="/resend-code" method="POST">
-
-        <button type="submit" class="secondary">
-
-            Resend code
-
-        </button>
-
-    </form>
-
-    <p class="hint">
-
-        <a href="/add-email">Wrong email?</a>
-        &nbsp;&middot;&nbsp;
-        <a href="/logout">Start over</a>
-
-    </p>
-
-</div>
-
-</body>
-</html>
+{% extends "auth_base.html" %}
+{% set step = 3 %}
+{% block body %}
+<div class="hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+<h1 class="title">Enter verification code</h1>
+<p class="sub">We sent a 6-digit code to<br><strong>{{ email }}</strong></p>
+<form action="/verify-email" method="POST" id="verifyForm">
+  <input type="hidden" name="code" id="code">
+  <div class="otp" id="otp">
+    {% for i in range(6) %}<input type="text" inputmode="numeric" maxlength="1" autocomplete="{{ 'one-time-code' if i == 0 else 'off' }}" aria-label="Digit {{ i + 1 }}">{% endfor %}
+  </div>
+  <button class="btn" type="submit">Verify email</button>
+</form>
+<form action="/resend-code" method="POST" class="foot">
+  Didn't get the code?
+  <button class="link" id="resend" type="submit" disabled>Resend code</button>
+  <span id="timer"></span>
+</form>
+<p class="foot"><a href="/add-email">Change email</a> &nbsp;&middot;&nbsp; <a href="/logout">Start over</a></p>
+{% endblock %}
+{% block scripts %}
+<script>
+const boxes = [...document.querySelectorAll("#otp input")];
+boxes[0].focus();
+boxes.forEach((b, i) => {
+  b.addEventListener("input", () => {
+    b.value = b.value.replace(/\D/g, "").slice(-1);
+    if (b.value && i < 5) boxes[i + 1].focus();
+  });
+  b.addEventListener("keydown", e => {
+    if (e.key === "Backspace" && !b.value && i > 0) boxes[i - 1].focus();
+  });
+  b.addEventListener("paste", e => {
+    e.preventDefault();
+    const d = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+    d.split("").forEach((c, k) => boxes[k].value = c);
+    boxes[Math.min(d.length, 5)].focus();
+  });
+});
+document.getElementById("verifyForm").addEventListener("submit", () => {
+  document.getElementById("code").value = boxes.map(b => b.value).join("");
+});
+let left = 60;
+const t = document.getElementById("timer"), r = document.getElementById("resend");
+const tick = setInterval(() => {
+  left--;
+  if (left <= 0) { clearInterval(tick); t.textContent = ""; r.disabled = false; return; }
+  t.textContent = "(00:" + String(left).padStart(2, "0") + ")";
+}, 1000);
+t.textContent = "(01:00)";
+</script>
+{% endblock %}

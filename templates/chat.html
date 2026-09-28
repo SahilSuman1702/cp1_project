@@ -1,324 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>DirectLine</title>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
+<body class="chat-page">
+<div class="app" id="app">
 
-<body>
-
-<div class="container">
-
-    <div class="sidebar">
-
-        <h2>DirectLine</h2>
-
-        <h3>{{ me }}</h3>
-
-        <a href="/logout">
-            Logout
-        </a>
-
-        <hr>
-
-        <input
-            type="text"
-            id="search"
-            placeholder="Search User..."
-            onkeyup="searchUser()"
-        >
-
-        <div id="users">
-
-            {% for user in users %}
-
-            <div class="user" onclick="openChat('{{ user }}')">
-
-                {{ user }}
-
-            </div>
-
-            {% endfor %}
-
-        </div>
-
+  <aside class="side">
+    <div class="side-top">
+      <span class="brand">
+        <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#1f5eff"/><path d="M12 9l12 7-12 7z" fill="#fff"/></svg>
+        DirectLine
+      </span>
+      <a class="logout" href="/logout">Log out</a>
     </div>
+    <div class="me"><div id="meAv"></div><div><b>{{ me }}</b><small>Signed in</small></div></div>
+    <input type="text" id="search" placeholder="Search users" autocomplete="off">
+    <div class="users" id="users"></div>
+  </aside>
 
-    <div class="chat">
-
-        <h2 id="chatUser">
-
-            Select User
-
-        </h2>
-
-        <div
-            id="messages"
-            class="messages"
-        >
-
-        </div>
-
-        <form
-            id="sendForm"
-            onsubmit="return sendMessage(event)"
-        >
-
-            <input
-                type="hidden"
-                id="receiver"
-                name="receiver"
-            >
-
-            <input
-                type="text"
-                id="messageInput"
-                name="message"
-                placeholder="Type message..."
-                required
-            >
-
-            <button>
-
-                Send
-
-            </button>
-
-        </form>
-
+  <section class="pane">
+    <header class="pane-top">
+      <button class="icon-btn" id="back" aria-label="Back to users">&larr;</button>
+      <div id="chatAv"></div>
+      <h2 id="chatUser">Select a user</h2>
+    </header>
+    <div class="messages" id="messages">
+      <p class="empty">Pick someone from the list to start chatting.</p>
     </div>
+    <form class="composer" id="sendForm">
+      <input type="text" id="messageInput" placeholder="Type a message" autocomplete="off" disabled required>
+      <button class="send" id="sendBtn" disabled>Send</button>
+    </form>
+  </section>
 
 </div>
 
 <script>
+const me = {{ me|tojson }};
+let users = {{ users|tojson }};
+let current = "", lastSig = "";
+const $ = id => document.getElementById(id);
 
-let currentUser = "";
-
-// ---------- Render user list (used for both initial load and live refresh) ---------- //
-
-function renderUsers(users){
-
-    let container = document.getElementById("users");
-
-    let searchVal =
-        document
-        .getElementById("search")
-        .value
-        .toLowerCase();
-
-    let html = "";
-
-    users.forEach(function(user){
-
-        html += `
-        <div class="user" onclick="openChat('${user}')">
-
-            ${user}
-
-        </div>
-        `;
-
-    });
-
-    container.innerHTML = html;
-
-    // re-apply current search filter after refresh
-    searchUser(searchVal);
-
+// escape everything that comes from users before putting it in the page
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function av(n){
+  let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `<span class="av" style="background:hsl(${h} 60% 45%)">${esc((n[0] || "?").toUpperCase())}</span>`;
 }
 
-// ---------- Fetch latest user list from server (so a newly signed up ---------- //
-// ---------- user shows up for everyone else without a page reload)   ---------- //
+function renderUsers(){
+  const q = $("search").value.trim().toLowerCase();
+  const list = users.filter(u => u.toLowerCase().includes(q));
+  $("users").innerHTML = list.length
+    ? list.map(u => `<button class="user${u === current ? " active" : ""}" data-user="${esc(u)}">${av(u)}<span>${esc(u)}</span></button>`).join("")
+    : `<p class="empty">${users.length ? "No user found." : "No one else has joined yet."}</p>`;
+}
 
 function refreshUsers(){
-
-    fetch("/api/users")
-
-    .then(r => r.json())
-
-    .then(data => {
-
-        renderUsers(data);
-
-    });
-
+  fetch("/api/users").then(r => r.json()).then(d => {
+    if (JSON.stringify(d) !== JSON.stringify(users)) { users = d; renderUsers(); }
+  });
 }
 
-function searchUser(forcedValue){
-
-    let input =
-        forcedValue !== undefined
-        ? forcedValue
-        : document
-            .getElementById("search")
-            .value
-            .toLowerCase();
-
-    let users =
-        document
-        .getElementsByClassName("user");
-
-    for(let i=0;i<users.length;i++){
-
-        let txt =
-            users[i]
-            .innerText
-            .toLowerCase()
-            .trim();
-
-        if(txt.indexOf(input)>-1){
-
-            users[i].style.display="block";
-
-        }
-
-        else{
-
-            users[i].style.display="none";
-
-        }
-
-    }
-
-}
-
-function openChat(user){
-
-    currentUser=user;
-
-    document
-    .getElementById("receiver")
-    .value=user;
-
-    document
-    .getElementById("chatUser")
-    .innerHTML=user;
-
-    loadMessages();
-
+function openChat(u){
+  current = u; lastSig = "";
+  $("chatUser").textContent = u;
+  $("chatAv").innerHTML = av(u);
+  $("messageInput").disabled = false;
+  $("sendBtn").disabled = false;
+  $("app").classList.add("open");
+  $("messages").innerHTML = "";
+  renderUsers();
+  loadMessages();
+  $("messageInput").focus();
 }
 
 function loadMessages(){
-
-    fetch("/messages/"+currentUser)
-
-    .then(r=>r.json())
-
-    .then(data=>{
-
-        let html="";
-
-        data.forEach(function(msg){
-
-            html+=`
-            <p>
-
-            <b>${msg.from}</b>
-
-            : ${msg.message}
-
-            </p>
-            `;
-
-        });
-
-        document
-        .getElementById("messages")
-        .innerHTML=html;
-
-        // auto scroll to latest message
-        let box = document.getElementById("messages");
-        box.scrollTop = box.scrollHeight;
-
-    });
-
+  const u = current;
+  if (!u) return;
+  fetch("/messages/" + encodeURIComponent(u)).then(r => r.json()).then(data => {
+    if (u !== current) return;
+    const sig = JSON.stringify(data);
+    if (sig === lastSig) return;          // nothing new, keep scroll position
+    lastSig = sig;
+    const box = $("messages");
+    box.innerHTML = data.length
+      ? data.map(m => `<div class="msg ${m.from === me ? "me" : "them"}">${esc(m.message)}</div>`).join("")
+      : `<p class="empty">No messages yet. Say hello to ${esc(u)}.</p>`;
+    box.scrollTop = box.scrollHeight;
+  });
 }
 
-// ---------- Send message via fetch (no page reload) ---------- //
+$("users").addEventListener("click", e => {
+  const b = e.target.closest(".user");
+  if (b) openChat(b.dataset.user);
+});
+$("search").addEventListener("input", renderUsers);
+$("back").addEventListener("click", () => $("app").classList.remove("open"));
 
-function sendMessage(event){
+$("sendForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const input = $("messageInput"), message = input.value.trim();
+  if (!current || !message) return;
+  const fd = new FormData();
+  fd.append("receiver", current);
+  fd.append("message", message);
+  input.value = "";
+  fetch("/send", { method: "POST", body: fd }).then(r => r.json()).then(d => {
+    if (d.status === "ok") loadMessages();
+    else { input.value = message; alert(d.message || "Message could not be sent"); }
+  });
+});
 
-    event.preventDefault();
-
-    if(currentUser === ""){
-
-        alert("Please select a user to chat with first");
-
-        return false;
-
-    }
-
-    let messageInput = document.getElementById("messageInput");
-
-    let message = messageInput.value.trim();
-
-    if(message === ""){
-
-        return false;
-
-    }
-
-    let formData = new FormData();
-
-    formData.append("receiver", currentUser);
-
-    formData.append("message", message);
-
-    fetch("/send", {
-
-        method: "POST",
-
-        body: formData
-
-    })
-
-    .then(r => r.json())
-
-    .then(data => {
-
-        if(data.status === "ok"){
-
-            messageInput.value = "";
-
-            loadMessages();
-
-        }
-
-        else{
-
-            alert(data.message || "Message could not be sent");
-
-        }
-
-    });
-
-    return false;
-
-}
-
-// poll messages of the open chat
-setInterval(function(){
-
-    if(currentUser!=""){
-
-        loadMessages();
-
-    }
-
-},2000);
-
-// poll user list so new signups appear live
+$("meAv").innerHTML = av(me);
+renderUsers();
+setInterval(loadMessages, 2000);
 setInterval(refreshUsers, 3000);
-
 </script>
-
 </body>
-
 </html>

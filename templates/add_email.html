@@ -1,53 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>DirectLine - Email</title>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-</head>
-
-<body>
-
-<div class="login-box">
-
-    <h1>DirectLine</h1>
-
-    <p>Enter the email for <strong>{{ userid }}</strong></p>
-
-    {% if error %}
-    <p class="error">{{ error }}</p>
-    {% endif %}
-
-    <form action="/add-email" method="POST">
-
-        <input
-            type="email"
-            name="email"
-            placeholder="Email address"
-            value="{{ email or '' }}"
-            autocomplete="email"
-            required
-        >
-
-        <p class="hint">We'll send a 6-digit code to verify it.</p>
-
-        <button type="submit">
-
-            Send Code
-
-        </button>
-
-    </form>
-
-    <p class="hint"><a href="/logout">Start over</a></p>
-
-</div>
-
-</body>
-</html>
+{% extends "auth_base.html" %}
+{% set step = 2 %}
+{% block body %}
+<div class="hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div>
+<h1 class="title">Verify your email</h1>
+<p class="sub">Enter the email for <strong>{{ userid }}</strong>. We'll send a 6-digit code.</p>
+<form action="/add-email" method="POST">
+  <label for="email">Email address</label>
+  <input id="email" type="email" name="email" placeholder="you@example.com" value="{{ email or '' }}" autocomplete="email" required autofocus>
+  <button class="btn" type="submit">Send code</button>
+</form>
+<p class="note">Check your inbox and spam folder for the verification code.</p>
+<p class="foot"><a href="/logout">Start over</a></p>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DirectLine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="auth">
+<header class="topbar">
+  <a class="brand" href="/">
+    <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#1f5eff"/><path d="M12 9l12 7-12 7z" fill="#fff"/></svg>
+    DirectLine
+  </a>
+</header>
+<main class="card">
+  <div class="steps">
+    <p>Step {{ step }} of 3</p>
+    <div class="dots">{% for i in (1,2,3) %}<span class="{{ 'done' if i < step else ('on' if i == step else '') }}"></span>{% endfor %}</div>
+  </div>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if info %}<p class="info">{{ info }}</p>{% endif %}
+  {% block body %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

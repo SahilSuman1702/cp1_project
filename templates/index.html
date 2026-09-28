@@ -1,108 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "auth_base.html" %}
+{% set step = 1 %}
+{% block body %}
+<div class="hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+<h1 class="title">Enter your user ID</h1>
+<p class="sub">New here? A new ID creates your account. Already registered? We'll ask for your password next.</p>
+<form action="/login" method="POST">
+  <label for="userid">User ID</label>
+  <input id="userid" type="text" name="userid" placeholder="Enter your user ID" autocomplete="username" required>
+  <p class="hint">e.g. sahil_07</p>
 
-<head>
+  <label>Solve the captcha</label>
+  <div class="cap">
+    <img id="captchaImg" src="/captcha.png" alt="Captcha">
+    <button type="button" onclick="refreshCaptcha()" title="Get a new captcha" aria-label="Get a new captcha">&#8635;</button>
+  </div>
+  <input style="margin-top:10px" type="text" name="captcha" placeholder="Enter the text from the image" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="10" required>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>DirectLine</title>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-</head>
-
-<body>
-
-<div class="login-box">
-
-    <h1>DirectLine</h1>
-
-    <p>Enter your unique User ID</p>
-
-    {% if error %}
-    <p class="error">{{ error }}</p>
-    {% endif %}
-
-    <form action="/login" method="POST">
-
-        <input
-            type="text"
-            name="userid"
-            placeholder="User ID"
-            required
-        >
-
-        <div class="captcha">
-
-            <div class="captcha-row">
-
-                <img
-                    id="captchaImg"
-                    class="captcha-img"
-                    src="/captcha.png"
-                    alt="Captcha"
-                >
-
-                <button
-                    type="button"
-                    class="captcha-refresh"
-                    onclick="refreshCaptcha()"
-                    title="Get a new captcha"
-                    aria-label="Get a new captcha"
-                >
-                    &#8635;
-                </button>
-
-            </div>
-
-            <input
-                type="text"
-                name="captcha"
-                placeholder="Enter the text from image"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck="false"
-                maxlength="10"
-                required
-            >
-
-        </div>
-
-        <button type="submit">
-
-            Continue
-
-        </button>
-
-    </form>
-
-</div>
-
+  <button class="btn" type="submit">Continue</button>
+</form>
+{% endblock %}
+{% block scripts %}
 <script>
-
 function refreshCaptcha(){
-
-    document
-    .getElementById("captchaImg")
-    .src = "/captcha.png?t=" + Date.now();
-
-    let box = document.querySelector("input[name=captcha]");
-    box.value = "";
-    box.focus();
-
+  document.getElementById("captchaImg").src = "/captcha.png?t=" + Date.now();
+  let box = document.querySelector("input[name=captcha]");
+  box.value = ""; box.focus();
 }
-
-// Back button / restored page: the old captcha is already used up, load a new one
-window.addEventListener("pageshow", function(e){
-
-    if(e.persisted){
-        refreshCaptcha();
-    }
-
-});
-
+window.addEventListener("pageshow", function(e){ if(e.persisted){ refreshCaptcha(); } });
 </script>
-
-</body>
-</html>
+{% endblock %}
