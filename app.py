@@ -70,6 +70,17 @@ UNVERIFIED_TTL = 3600        # signup not verified within 1 hour -> userid is re
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+# Demo / examiner password: a NEW user id that signs up with this password is
+# logged in directly, with no email verification. Override it with the
+# DEMO_PASSWORD env var; set DEMO_PASSWORD to an empty string to switch it off.
+DEMO_PASSWORD = os.environ.get("DEMO_PASSWORD", "cpproject2026")
+
+
+def is_demo_password(password):
+    return bool(DEMO_PASSWORD) and hmac.compare_digest(
+        (password or "").encode(), DEMO_PASSWORD.encode()
+    )
+
 users_lock = threading.RLock()
 
 
@@ -559,6 +570,21 @@ def set_password():
                 return render_template(
                     "set_password.html", userid=userid, email=email, error=msg
                 )
+
+            # demo password -> account is created already verified and logged in
+            if is_demo_password(password):
+                users.append({
+                    "userid": userid,
+                    "password": generate_password_hash(password),
+                    "email": "",
+                    "email_verified": True,
+                    "created_at": time.time(),
+                    "name": userid,
+                    "status": DEFAULT_STATUS,
+                    "about": "",
+                })
+                save_users(users)
+                return finish_login(userid)
 
             if not EMAIL_RE.match(email) or len(email) > 254:
                 return fail("Enter a valid email address")
